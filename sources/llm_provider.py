@@ -223,16 +223,25 @@ class Provider:
         Use openai to generate text.
         """
         base_url = self.server_ip
-        if self.is_local and self.in_docker:
-            try:
-                host, port = base_url.split(':')
-            except Exception as e:
-                port = "8000"
-            client = OpenAI(api_key=self.api_key, base_url=f"{self.internal_url}:{port}")
-        elif self.is_local:
-            client = OpenAI(api_key=self.api_key, base_url=f"http://{base_url}")
+        if self.is_local:
+            addr = base_url
+            if "://" not in addr:
+                addr = f"http://{addr}"
+            parsed_addr = urlparse(addr)
+            scheme = parsed_addr.scheme or "http"
+            hostname = parsed_addr.hostname or "localhost"
+            port = f":{parsed_addr.port}" if parsed_addr.port else ""
+            path = parsed_addr.path or ""
+            
+            if self.in_docker and hostname in ("localhost", "127.0.0.1"):
+                base_url = f"{self.internal_url}{port}{path}"
+            else:
+                base_url = f"{scheme}://{hostname}{port}{path}"
+            
+            client = OpenAI(api_key=self.api_key, base_url=base_url)
         else:
             client = OpenAI(api_key=self.api_key)
+
 
         try:
             response = client.chat.completions.create(

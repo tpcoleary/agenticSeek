@@ -109,6 +109,12 @@ def install_chromedriver() -> str:
     Install the ChromeDriver if not already installed. Return the path.
     Automatically updates the driver if the version does not match the installed Chrome.
     """
+    # In Docker environment, always use the pre-installed Docker ChromeDriver
+    if os.path.exists('/.dockerenv') or os.path.exists('/opt/chrome-linux64'):
+        docker_chromedriver_path = "/usr/local/bin/chromedriver"
+        if os.path.exists(docker_chromedriver_path) and os.access(docker_chromedriver_path, os.X_OK):
+            return docker_chromedriver_path
+
     # First try to use chromedriver in the project root directory (as per README)
     project_root_chromedriver = "./chromedriver"
     if os.path.exists(project_root_chromedriver) and os.access(project_root_chromedriver, os.X_OK):
@@ -123,13 +129,6 @@ def install_chromedriver() -> str:
         if is_chromedriver_compatible(chromedriver_path):
             return chromedriver_path
         print(f"System ChromeDriver at {chromedriver_path} is outdated, attempting auto-update...")
-    
-    # In Docker environment, try the fixed path
-    if os.path.exists('/.dockerenv'):
-        docker_chromedriver_path = "/usr/local/bin/chromedriver"
-        if os.path.exists(docker_chromedriver_path) and os.access(docker_chromedriver_path, os.X_OK):
-            print(f"Using Docker ChromeDriver at {docker_chromedriver_path}")
-            return docker_chromedriver_path
     
     # Auto-install matching ChromeDriver version
     try:
